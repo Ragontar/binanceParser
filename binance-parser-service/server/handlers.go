@@ -75,6 +75,11 @@ func AssetAddPUT(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !ValidateSymbol(b.Symbol) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("wrong symbol"))
+		return
+	}
 	if err := Parser.AddAsset(b.Symbol); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error())) // testing
@@ -82,4 +87,16 @@ func AssetAddPUT(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("added"))
+}
+
+func ValidateSymbol(symbol string) bool {
+	resp, err := http.Get("https://api.binance.com/api/v3/ticker/price?symbol=" + symbol)
+	if err != nil {
+		return false
+	}
+	if resp.StatusCode == http.StatusOK {
+		return true
+	}
+
+	return false
 }
