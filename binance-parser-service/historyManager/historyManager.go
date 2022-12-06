@@ -16,12 +16,6 @@ const (
 	directionNothingChanged           = "-"
 )
 
-var directionsMap = map[string]Direction{
-	"up":   directionUp,
-	"down": directionDown,
-	"-":    directionNothingChanged,
-}
-
 type HistoryManager struct {
 	Asset         Asset
 	EntriesBuffer []HistoryEntry // is used to temp store data before saving to storage
@@ -60,8 +54,6 @@ func NewHistoryManager(hs HistoryStorage, a Asset, params ...time.Duration) *His
 	} else {
 		hm.bufferUnloadInterval = params[0]
 	}
-	// var err error
-	// hm.HistoryEntries, err = hm.storage.Load(a.Name)
 
 	go hm.StartHistoryBufferProcessor()
 
@@ -78,8 +70,6 @@ func (hm *HistoryManager) SaveBuffer() error {
 	if err := hm.storage.Save(hm.EntriesBuffer); err != nil {
 		return err
 	}
-
-	//  hm.HistoryEntries = append(hm.HistoryEntries, hm.EntriesBuffer...)
 	hm.EntriesBuffer = nil
 
 	return nil

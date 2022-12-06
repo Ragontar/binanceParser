@@ -64,27 +64,6 @@ func (p *Parser) AddAsset(symbol string) error {
 		return nil
 	}
 
-	// Asset is in DB
-	// assetList, err := p.AssetStorage.LoadAssets()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// for _, asset := range assetList {
-	// 	if asset.Name != symbol {
-	// 		continue
-	// 	}
-	// 	as = historyManager.Asset{
-	// 		ID:   asset.ID,
-	// 		Name: symbol,
-	// 	}
-	// 	p.HistoryManagersMap[symbol] = historyManager.NewHistoryManager(
-	// 		historyManager.HistoryStorageDB,
-	// 		as,
-	// 	)
-	// 	return nil
-	// }
-
 	// Asset is not present in DB
 	as = historyManager.Asset{
 		ID:   uuid.NewString(),
@@ -97,9 +76,7 @@ func (p *Parser) AddAsset(symbol string) error {
 		historyManager.HistoryStorageDB,
 		as,
 	)
-	println("!!!!!!NEW ASSET!!!!!!")
-	println(symbol)
-	fmt.Println(p.HistoryManagersMap)
+
 	return nil
 }
 
@@ -122,7 +99,6 @@ func (p *Parser) Fetch() error {
 	}
 	queryValue = queryValue[:len(queryValue)-1]
 	queryValue += "]"
-	fmt.Println(queryValue)
 	q.Add("symbols", queryValue)
 	req.URL.RawQuery = q.Encode()
 
