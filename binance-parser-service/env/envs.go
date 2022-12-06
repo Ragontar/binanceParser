@@ -1,5 +1,10 @@
 package env
 
+import (
+	"fmt"
+	"os"
+)
+
 var (
 	DB_USER     string
 	DB_PASSWORD string
@@ -10,21 +15,21 @@ var (
 // TODO read from environment
 
 func init() {
-	// var ok bool
-	// if DB_USER, ok = os.LookupEnv("DB_USER"); !ok {
-	// 	panic(fmt.Sprintf("Cannot lookup %s", "DB_USER"))
-	// }
-	// if DB_PASSWORD, ok = os.LookupEnv("DB_PASSWORD"); !ok {
-	// 	panic(fmt.Sprintf("Cannot lookup %s", "DB_PASSWORD"))
-	// }
-	// if DB_ADDR, ok = os.LookupEnv("DB_ADDR"); !ok {
-	// 	panic(fmt.Sprintf("Cannot lookup %s", "DB_ADDR"))
-	// }
-	// if DB_DATABASE, ok = os.LookupEnv("DB_DATABASE"); !ok {
-	// 	panic(fmt.Sprintf("Cannot lookup %s", "DB_DATABASE"))
-	// }
-	DB_ADDR = "localhost:8081"
-	DB_DATABASE = "postgres"
-	DB_PASSWORD = "postgres"
-	DB_USER = "postgres"
+	var ok bool
+	if DB_USER, ok = os.LookupEnv("DB_USER"); !ok {
+		panic(fmt.Sprintf("Cannot lookup %s", "DB_USER"))
+	}
+	if DB_PASSWORD, ok = os.LookupEnv("DB_PASSWORD"); !ok {
+		panic(fmt.Sprintf("Cannot lookup %s", "DB_PASSWORD"))
+	}
+	if DB_ADDR, ok = os.LookupEnv("DB_ADDR"); !ok {
+		panic(fmt.Sprintf("Cannot lookup %s", "DB_ADDR"))
+	}
+	if DB_DATABASE, ok = os.LookupEnv("DB_DATABASE"); !ok {
+		panic(fmt.Sprintf("Cannot lookup %s", "DB_DATABASE"))
+	}
+	// DB_ADDR = "localhost:8081"
+	// DB_DATABASE = "postgres"
+	// DB_PASSWORD = "postgres"
+	// DB_USER = "postgres"
 }
