@@ -11,6 +11,7 @@ import (
 )
 
 var Parser *prs.Parser
+
 const timeout = 5 * time.Minute
 
 type AssetAddRequestBody struct {

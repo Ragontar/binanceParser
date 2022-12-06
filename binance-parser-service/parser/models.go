@@ -1,8 +1,8 @@
 package parser
 
 type TickerEntry struct {
-	symbol string `json:"symbol,omitempty"`
-	price  string `json:"price,omitempty"`
+	Symbol string `json:"symbol,omitempty"`
+	Price  string `json:"price,omitempty"`
 }
 
 type TickerResponse struct {

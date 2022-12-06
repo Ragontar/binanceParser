@@ -23,4 +23,8 @@ func init() {
 	// if DB_DATABASE, ok = os.LookupEnv("DB_DATABASE"); !ok {
 	// 	panic(fmt.Sprintf("Cannot lookup %s", "DB_DATABASE"))
 	// }
+	DB_ADDR = "localhost:8081"
+	DB_DATABASE = "postgres"
+	DB_PASSWORD = "postgres"
+	DB_USER = "postgres"
 }

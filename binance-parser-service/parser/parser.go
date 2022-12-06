@@ -2,10 +2,12 @@ package parser
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Ragontar/binanceParcer/historyManager"
@@ -20,6 +22,8 @@ type Parser struct {
 	AssetStorage       AssetStorage
 
 	FetchInterval time.Duration
+
+	mu sync.Mutex
 }
 
 type AssetStorage interface {
@@ -29,7 +33,7 @@ type AssetStorage interface {
 
 // Creates new Parser with selected AssetStorage. Fetch Interval can be passed in opts.
 // Default: 1 second
-func NewParser(as AssetStorage, opts... time.Duration) (*Parser, error) {
+func NewParser(as AssetStorage, opts ...time.Duration) (*Parser, error) {
 	p := &Parser{
 		AssetStorage:       as,
 		HistoryManagersMap: make(map[string]*historyManager.HistoryManager),
@@ -52,29 +56,34 @@ func NewParser(as AssetStorage, opts... time.Duration) (*Parser, error) {
 }
 
 func (p *Parser) AddAsset(symbol string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	var as historyManager.Asset
 	if _, ok := p.HistoryManagersMap[symbol]; ok {
 		return nil
 	}
 
-	assetList, err := p.AssetStorage.LoadAssets()
-	if err != nil {
-		return err
-	}
+	// Asset is in DB
+	// assetList, err := p.AssetStorage.LoadAssets()
+	// if err != nil {
+	// 	return err
+	// }
 
-	for _, asset := range assetList {
-		if asset.Name == symbol {
-			as = historyManager.Asset{
-				ID:   asset.ID,
-				Name: symbol,
-			}
-			p.HistoryManagersMap[symbol] = historyManager.NewHistoryManager(
-				historyManager.HistoryStorageDB,
-				as,
-			)
-			return nil
-		}
-	}
+	// for _, asset := range assetList {
+	// 	if asset.Name != symbol {
+	// 		continue
+	// 	}
+	// 	as = historyManager.Asset{
+	// 		ID:   asset.ID,
+	// 		Name: symbol,
+	// 	}
+	// 	p.HistoryManagersMap[symbol] = historyManager.NewHistoryManager(
+	// 		historyManager.HistoryStorageDB,
+	// 		as,
+	// 	)
+	// 	return nil
+	// }
 
 	// Asset is not present in DB
 	as = historyManager.Asset{
@@ -88,21 +97,33 @@ func (p *Parser) AddAsset(symbol string) error {
 		historyManager.HistoryStorageDB,
 		as,
 	)
-
+	println("!!!!!!NEW ASSET!!!!!!")
+	println(symbol)
+	fmt.Println(p.HistoryManagersMap)
 	return nil
 }
 
 // Gets data from Binance API, appends new entries to history buffers of active HistoryManagers
 func (p *Parser) Fetch() error {
+	if len(p.HistoryManagersMap) == 0 {
+		log.Println("HistoryManagersMap is empty...")
+		return nil
+	}
+
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
 		return err
 	}
 
 	q := req.URL.Query()
+	queryValue := "["
 	for _, hm := range p.HistoryManagersMap {
-		q.Add("symbols", hm.Asset.Name)
+		queryValue += fmt.Sprintf("\"%s\",", hm.Asset.Name)
 	}
+	queryValue = queryValue[:len(queryValue)-1]
+	queryValue += "]"
+	fmt.Println(queryValue)
+	q.Add("symbols", queryValue)
 	req.URL.RawQuery = q.Encode()
 
 	client := &http.Client{}
@@ -115,19 +136,20 @@ func (p *Parser) Fetch() error {
 	if err != nil {
 		return err
 	}
-	var TickerResponse TickerResponse
+	// var TickerResponse TickerResponse
+	TickerResponse := []TickerEntry{}
 	if err := json.Unmarshal(body, &TickerResponse); err != nil {
 		return err
 	}
 	log.Println(TickerResponse)
 
-	for _, tickerEntry := range TickerResponse.Entries {
-		hm, ok := p.HistoryManagersMap[tickerEntry.symbol]
+	for _, tickerEntry := range TickerResponse {
+		hm, ok := p.HistoryManagersMap[tickerEntry.Symbol]
 		if !ok {
-			log.Printf("[WARN]: trying to access missing key %s\n", tickerEntry.symbol)
+			log.Printf("[WARN]: trying to access missing key %s\n", tickerEntry.Symbol)
 			continue
 		}
-		priceFloat, err := strconv.ParseFloat(tickerEntry.price, 64)
+		priceFloat, err := strconv.ParseFloat(tickerEntry.Price, 64)
 		if err != nil {
 			log.Printf("parsing float: %s\n", err)
 			continue

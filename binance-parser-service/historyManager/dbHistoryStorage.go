@@ -22,7 +22,7 @@ type DBHistoryStorage struct {
 
 func NewDBHistoryStorage() (*DBHistoryStorage, error) {
 	s := &DBHistoryStorage{}
-	s.timeout = 5 * time.Minute
+	s.timeout = 30 * time.Second
 	err := s.init()
 	return s, err
 }
@@ -48,24 +48,38 @@ func (s *DBHistoryStorage) init() error {
 func (dbs *DBHistoryStorage) Save(entries []HistoryEntry) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout)
 	defer cancel()
-	var vals []interface{}
+	// var vals []interface{}
 	var queryString = INSERT_HISTORY_ENTRIES
 	for _, he := range entries {
-		queryString += "(?, ?, ?, ?, ?, ?),"
-		vals = append(
-			vals,
+		// queryString +=
+		// vals = append(
+		// 	vals,
+		// 	he.ID,
+		// 	he.Asset.ID,
+		// 	he.Price,
+		// 	string(he.direction),
+		// 	he.perc,
+		// 	he.date,
+		// )
+		queryString += fmt.Sprintf(
+			"('%s', '%s', %v, '%s', %v, '%s'),",
 			he.ID,
 			he.Asset.ID,
 			he.Price,
-			string(he.direction),
-			he.perc,
-			he.date,
+			string(he.Direction),
+			he.Perc,
+			he.Date.Format(time.RFC3339),
 		)
 	}
 	queryString = queryString[0 : len(queryString)-1]
 
-	_, err := dbs.db.Query(ctx, queryString, vals...)
-	return err
+	fmt.Println(queryString)
+	rows, err := dbs.db.Query(ctx, queryString)
+	if err != nil {
+		return err
+	}
+	rows.Close()
+	return nil
 }
 
 func (dbs *DBHistoryStorage) Load(assetID string, limit int, offset int) ([]HistoryEntry, error) {
@@ -75,12 +89,13 @@ func (dbs *DBHistoryStorage) Load(assetID string, limit int, offset int) ([]Hist
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	entries := make([]HistoryEntry, 0, limit)
 
 	for rows.Next() {
 		var e HistoryEntry
-		err := rows.Scan(&e.ID, &e.Asset.ID, &e.Price, &e.direction, &e.perc, &e.date)
+		err := rows.Scan(&e.ID, &e.Asset.ID, &e.Price, &e.Direction, &e.Perc, &e.Date)
 		if err != nil {
 			log.Printf("[SCAN]: %v\n", err)
 		}
@@ -106,6 +121,7 @@ func (dbs *DBHistoryStorage) LoadAssets() ([]Asset, error) {
 		if err != nil {
 			log.Printf("[SCAN]: %v\n", err)
 		}
+		defer rows.Close()
 		assets = append(assets, a)
 	}
 
@@ -115,7 +131,11 @@ func (dbs *DBHistoryStorage) LoadAssets() ([]Asset, error) {
 func (dbs *DBHistoryStorage) AddAsset(a Asset) error {
 	ctx, canel := context.WithTimeout(context.Background(), dbs.timeout)
 	defer canel()
-	_, err := dbs.db.Query(ctx, INSERT_ASSET, a.ID, a.Name)
+	rows, err := dbs.db.Query(ctx, INSERT_ASSET, a.ID, a.Name)
+	if err != nil {
+		return err
+	}
+	rows.Close()
 
-	return err
+	return nil
 }

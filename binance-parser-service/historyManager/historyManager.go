@@ -28,7 +28,6 @@ type HistoryManager struct {
 
 	mu                   sync.Mutex
 	storage              HistoryStorage
-	fetchInterval        time.Duration
 	bufferUnloadInterval time.Duration
 }
 
@@ -36,10 +35,10 @@ type HistoryEntry struct {
 	ID        string    `json:"id,omitempty"`
 	Asset     Asset     `json:"asset,omitempty"`
 	Price     float64   `json:"price,omitempty"`
-	prevPrice float64   `json:"prev_price,omitempty"`
-	direction Direction `json:"direction,omitempty"`
-	perc      float64   `json:"perc,omitempty"`
-	date      time.Time `json:"date,omitempty"`
+	PrevPrice float64   `json:"prev_price,omitempty"`
+	Direction Direction `json:"direction,omitempty"`
+	Perc      float64   `json:"perc,omitempty"`
+	Date      time.Time `json:"date,omitempty"`
 }
 
 type Asset struct {
@@ -71,6 +70,9 @@ func NewHistoryManager(hs HistoryStorage, a Asset, params ...time.Duration) *His
 
 // Saves buffer to storage
 func (hm *HistoryManager) SaveBuffer() error {
+	if len(hm.EntriesBuffer) == 0 {
+		return nil
+	}
 	hm.mu.Lock()
 	defer hm.mu.Unlock()
 	if err := hm.storage.Save(hm.EntriesBuffer); err != nil {
@@ -103,28 +105,32 @@ func (hm *HistoryManager) AddHistoryEntry(he HistoryEntry) error {
 
 	// Get asset last price
 	if len(hm.EntriesBuffer) != 0 {
-		he.prevPrice = hm.EntriesBuffer[len(hm.EntriesBuffer)-1].Price
+		he.PrevPrice = hm.EntriesBuffer[len(hm.EntriesBuffer)-1].Price
 	} else {
 		prevEntry, err := hm.storage.Load(he.Asset.ID, 1, 0) // get latest history entry
 		if err != nil {
 			return err
 		}
-		he.prevPrice = prevEntry[0].Price
+		if len(prevEntry) == 0 {
+			he.PrevPrice = he.Price
+		} else {
+			he.PrevPrice = prevEntry[0].Price
+		}
 	}
 
-	if he.prevPrice == 0 {
-		he.direction = directionNothingChanged
-		he.perc = 0
+	if he.PrevPrice == 0 {
+		he.Direction = directionNothingChanged
+		he.Perc = 0
 	}
-	if he.prevPrice > he.Price {
-		he.direction = directionDown
-		he.perc = math.Abs((1 - (he.Price / he.prevPrice)) * 100)
+	if he.PrevPrice > he.Price {
+		he.Direction = directionDown
+		he.Perc = math.Abs((1 - (he.Price / he.PrevPrice)) * 100)
 	}
-	if he.prevPrice < he.Price {
-		he.direction = directionUp
-		he.perc = math.Abs((1 - (he.Price / he.prevPrice)) * 100)
+	if he.PrevPrice < he.Price {
+		he.Direction = directionUp
+		he.Perc = math.Abs((1 - (he.Price / he.PrevPrice)) * 100)
 	}
-	he.date = time.Now()
+	he.Date = time.Now()
 
 	hm.EntriesBuffer = append(hm.EntriesBuffer, he)
 

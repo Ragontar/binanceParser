@@ -37,7 +37,7 @@ var routes = Routes{
 	Route{
 		"AssetHistoryGET",
 		strings.ToUpper("GET"),
-		"/asset/history/{assetName}",
+		"/asset/history",
 		AssetHistoryGET,
 	},
 
