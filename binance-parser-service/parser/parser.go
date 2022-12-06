@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Ragontar/binanceParcer/historyManager"
 	"github.com/google/uuid"
@@ -17,6 +18,8 @@ const api = "https://api.binance.com/api/v3/ticker/price"
 type Parser struct {
 	HistoryManagersMap map[string]*historyManager.HistoryManager // key = symbol
 	AssetStorage       AssetStorage
+
+	FetchInterval time.Duration
 }
 
 type AssetStorage interface {
@@ -24,7 +27,9 @@ type AssetStorage interface {
 	AddAsset(historyManager.Asset) error
 }
 
-func NewParser(as AssetStorage) (*Parser, error) {
+// Creates new Parser with selected AssetStorage. Fetch Interval can be passed in opts.
+// Default: 1 second
+func NewParser(as AssetStorage, opts... time.Duration) (*Parser, error) {
 	p := &Parser{
 		AssetStorage:       as,
 		HistoryManagersMap: make(map[string]*historyManager.HistoryManager),
@@ -36,11 +41,17 @@ func NewParser(as AssetStorage) (*Parser, error) {
 	for _, a := range assets {
 		p.HistoryManagersMap[a.Name] = historyManager.NewHistoryManager(historyManager.HistoryStorageDB, a)
 	}
+
+	if len(opts) == 0 {
+		p.FetchInterval = time.Second
+	} else {
+		p.FetchInterval = opts[0]
+	}
+
 	return p, nil
 }
 
 func (p *Parser) AddAsset(symbol string) error {
-	// TODO try to GET price before adding
 	var as historyManager.Asset
 	if _, ok := p.HistoryManagersMap[symbol]; ok {
 		return nil
