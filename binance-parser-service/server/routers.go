@@ -42,9 +42,9 @@ var routes = Routes{
 	},
 
 	Route{
-		"AssetAddPUT",
-		strings.ToUpper("PUT"),
+		"AssetAddPOST",
+		strings.ToUpper("POST"),
 		"/asset/add",
-		AssetAddPUT,
+		AssetAddPOST,
 	},
 }
