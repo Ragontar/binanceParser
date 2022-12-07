@@ -12,10 +12,7 @@ import (
 
 func main() {
 	router := server.NewRouter()
-	// p, err := parser.NewParser(historyManager.HistoryStorageDB)
-	// if err != nil {
-	// 	panic(err)
-	// }
+
 	go func(parser *parser.Parser) {
 		for {
 			time.Sleep(parser.FetchInterval)
