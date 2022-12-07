@@ -14,13 +14,13 @@ import (
 	"github.com/google/uuid"
 )
 
-const api = "https://api.binance.com/api/v3/ticker/price"
+
 
 // ! INITIALIZE THE MAP
 type Parser struct {
 	HistoryManagersMap map[string]*historyManager.HistoryManager // key = symbol
 	AssetStorage       AssetStorage
-
+	ApiURL string
 	FetchInterval time.Duration
 
 	mu sync.Mutex
@@ -33,9 +33,10 @@ type AssetStorage interface {
 
 // Creates new Parser with selected AssetStorage. Fetch Interval can be passed in opts.
 // Default: 1 second
-func NewParser(as AssetStorage, opts ...time.Duration) (*Parser, error) {
+func NewParser(as AssetStorage, url string, opts ...time.Duration) (*Parser, error) {
 	p := &Parser{
 		AssetStorage:       as,
+		ApiURL: url,
 		HistoryManagersMap: make(map[string]*historyManager.HistoryManager),
 	}
 	assets, err := p.AssetStorage.LoadAssets()
@@ -87,7 +88,7 @@ func (p *Parser) Fetch() error {
 		return nil
 	}
 
-	req, err := http.NewRequest(http.MethodGet, api, nil)
+	req, err := http.NewRequest(http.MethodGet, p.ApiURL, nil)
 	if err != nil {
 		return err
 	}
@@ -112,7 +113,7 @@ func (p *Parser) Fetch() error {
 	if err != nil {
 		return err
 	}
-	// var TickerResponse TickerResponse
+
 	TickerResponse := []TickerEntry{}
 	if err := json.Unmarshal(body, &TickerResponse); err != nil {
 		return err

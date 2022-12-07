@@ -2,6 +2,7 @@ package historyManager
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"math"
 	"sync"
@@ -31,7 +32,7 @@ type HistoryEntry struct {
 	Price     float64   `json:"price,omitempty"`
 	PrevPrice float64   `json:"prev_price,omitempty"`
 	Direction Direction `json:"direction,omitempty"`
-	Perc      float64   `json:"perc,omitempty"`
+	Perc      float64   `json:"perc"`
 	Date      time.Time `json:"date,omitempty"`
 }
 
@@ -101,7 +102,7 @@ func (hm *HistoryManager) AddHistoryEntry(he HistoryEntry) error {
 		if err != nil {
 			return err
 		}
-		if len(prevEntry) == 0 {
+		if len(prevEntry) == 0 { // No history data in storage
 			he.PrevPrice = he.Price
 		} else {
 			he.PrevPrice = prevEntry[0].Price
@@ -109,17 +110,20 @@ func (hm *HistoryManager) AddHistoryEntry(he HistoryEntry) error {
 	}
 
 	if he.PrevPrice == 0 {
+		return errors.New("previous price cannot be 0")
+	}
+	he.Perc = math.Abs((1 - (he.Price / he.PrevPrice)) * 100)
+
+	if he.PrevPrice == he.Price {
 		he.Direction = directionNothingChanged
-		he.Perc = 0
 	}
 	if he.PrevPrice > he.Price {
 		he.Direction = directionDown
-		he.Perc = math.Abs((1 - (he.Price / he.PrevPrice)) * 100)
 	}
 	if he.PrevPrice < he.Price {
 		he.Direction = directionUp
-		he.Perc = math.Abs((1 - (he.Price / he.PrevPrice)) * 100)
 	}
+
 	he.Date = time.Now()
 
 	hm.EntriesBuffer = append(hm.EntriesBuffer, he)

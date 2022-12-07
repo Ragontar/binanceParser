@@ -48,19 +48,8 @@ func (s *DBHistoryStorage) init() error {
 func (dbs *DBHistoryStorage) Save(entries []HistoryEntry) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout)
 	defer cancel()
-	// var vals []interface{}
 	var queryString = INSERT_HISTORY_ENTRIES
 	for _, he := range entries {
-		// queryString +=
-		// vals = append(
-		// 	vals,
-		// 	he.ID,
-		// 	he.Asset.ID,
-		// 	he.Price,
-		// 	string(he.direction),
-		// 	he.perc,
-		// 	he.date,
-		// )
 		queryString += fmt.Sprintf(
 			"('%s', '%s', %v, '%s', %v, '%s'),",
 			he.ID,
@@ -72,19 +61,21 @@ func (dbs *DBHistoryStorage) Save(entries []HistoryEntry) error {
 		)
 	}
 	queryString = queryString[0 : len(queryString)-1]
-
 	fmt.Println(queryString)
+
 	rows, err := dbs.db.Query(ctx, queryString)
 	if err != nil {
 		return err
 	}
 	rows.Close()
+
 	return nil
 }
 
 func (dbs *DBHistoryStorage) Load(assetID string, limit int, offset int) ([]HistoryEntry, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout)
 	defer cancel()
+
 	rows, err := dbs.db.Query(ctx, SELECT_HISTORY_ENTRIES_BY_ASSET_ID, assetID, limit, offset)
 	if err != nil {
 		return nil, err
